@@ -54,7 +54,7 @@ class TransitFit(object):
     def log_probability(self, par):
         return logprob_lm(par, *self.args)
 
-    def fit_map(self, lm_prefit=True, verbose=True, guess_t0=False):
+    def fit_map(self, lm_prefit=True, use_rhostar=True, verbose=True, guess_t0=False):
 
         init_params = self.init_params
         par = get_par(get_theta(init_params), self.sm)
@@ -64,13 +64,17 @@ class TransitFit(object):
         lm_logprob = -np.inf
 
         if lm_prefit:
+            #fix some parameters
 
             par['k'].vary = False
-            par['r'].vary = False
             par['ls'].vary = False
             par['q1'].vary = False
             par['q2'].vary = False
             par['p'].vary = False
+            if use_rhostar:
+                par['r'].vary = False
+            else:
+                par['a'].vary = False
 
             res = lmfit.minimize(residual_lm, par, args=args[:4])
             if res.success:
@@ -114,6 +118,17 @@ class TransitFit(object):
         self.map_par['q1'].vary = True
         self.map_par['q2'].vary = True
         self.map_par['p'].vary = True
+
+        if use_rhostar:
+            self.map_par['r'].vary = True
+            #self.map_par['a'].vary = False
+            #par.pop('a')
+            self.map_par.pop('a')
+        else:
+            #self.map_par['r'].vary = False
+            self.map_par['a'].vary = True
+            #par.pop('r')
+            self.map_par.pop('r')
 
     @timeit
     def fit_mcmc(self, steps=1000, nwalkers=100, two_stage=False, nproc=1, use_priors='all',

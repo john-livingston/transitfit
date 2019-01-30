@@ -45,6 +45,7 @@ class LinearSystematicsModel(object):
 
     @property
     def model(self):
+        #import pdb; pdb.set_trace()
         return np.dot(self._X, self._pv)
 
     def log_likelihood(self, residuals, jitter=None):

@@ -158,19 +158,28 @@ def get_init_params(per, t0, t14, rprs, rho=None, b=0.5, q1=0.5, q2=0.5):
     init_params['t0'] = t0
     init_params['t14'] = t14
     init_params['k'] = rprs
-    init_params['r'] = rho if rho is not None else 1.41
+    #init_params['r'] = rho if rho is not None else 1.41
+    if rho is not None:
+        init_params['r'] = rho
+        init_params['a'] = arstar(per, rho)
+    else:
+        a = scaled_a(per, t14, rprs, i=90, b=0)
+        init_params['a'] = a
+        init_params['r'] = rhostar(per, a)
+
     init_params['b'] = b
     init_params['q1'] = q1
     init_params['q2'] = q2
     return init_params
 
 def get_par(theta, sm):
-    names = 't0 p k r b q1 q2 ls'.split()
+    names = 't0 p k r a b q1 q2 ls'.split()
     bounds = [
         (-np.inf,np.inf), #T0
         (0,np.inf), #P
         (0,1), #Rp/Rs
         (0,np.inf), #rhostar
+        (0,np.inf), #a
         (0,1+theta[2]), #b
         (0,1), #q1
         (0,1), #q2
@@ -188,8 +197,9 @@ def get_theta(params_dict):
     p = params_dict['p']     #orbital period
     k = params_dict['k']      #planet radius (in units of stellar radii)
     r = params_dict['r']       #mean stellar density (cgs)
+    a = params_dict['a']       #scaled a
     b = params_dict['b']
     q1 = params_dict['q1']
     q2 = params_dict['q2']
     ls = params_dict['ls']
-    return [t0,p,k,r,b,q1,q2,ls]
+    return [t0,p,k,r,a,b,q1,q2,ls]
