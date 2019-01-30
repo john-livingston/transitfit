@@ -4,7 +4,8 @@ from astropy import constants as c
 from astropy import units as u
 import lmfit
 from batman import TransitParams, TransitModel
-
+import pandas as pd
+from collections import OrderedDict
 
 def timeit(method):
     """
@@ -26,6 +27,16 @@ def mad_outliers(x, hi=5, lo=5):
     MAD = 1.4826 * np.nanmedian(np.abs(x - M))
     out = (x > M + hi * MAD) | (x < M - lo * MAD)
     return out
+
+def bin_data(data, binsize_min):
+    cols = ['c{}'.format(i) for i in range(data.shape[1])]
+    df = pd.DataFrame(OrderedDict(zip(cols,data.T)))
+
+    binsize = binsize_min / (60 * 24)
+    bins = np.arange(df['c0'].min(), df['c0'].max(), binsize)
+    groups = df.groupby(np.digitize(df['c0'], bins))
+    df_binned = groups.mean().copy()
+    return df_binned.values
 
 def rho(logg, r):
     r = (r * u.R_sun).cgs
