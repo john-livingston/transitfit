@@ -42,8 +42,8 @@ class TransitFit(object):
     @property
     def t14(self):
         if self.map_par is not None:
-            p, r, k, b = [self.map_par[i].value for i in ['p','r','k','b']]
-            a = arstar(p, r)
+            p, a, k, b = [self.map_par[i].value for i in ['p','a','k','b']]
+            #a = arstar(p, r)
             t14 = t14_circ(p, a, k, b)
             return t14
 
@@ -54,7 +54,7 @@ class TransitFit(object):
     def log_probability(self, par):
         return logprob_lm(par, *self.args)
 
-    def fit_map(self, lm_prefit=True, use_rhostar=True, verbose=True, guess_t0=False):
+    def fit_map(self, lm_prefit=True, verbose=True, guess_t0=False):
 
         init_params = self.init_params
         par = get_par(get_theta(init_params), self.sm)
@@ -71,10 +71,7 @@ class TransitFit(object):
             par['q1'].vary = False
             par['q2'].vary = False
             par['p'].vary = False
-            if use_rhostar:
-                par['r'].vary = False
-            else:
-                par['a'].vary = False
+            par['a'].vary = False
 
             res = lmfit.minimize(residual_lm, par, args=args[:4])
             if res.success:
@@ -114,21 +111,21 @@ class TransitFit(object):
 
         self.map_par['t0'].vary = True
         self.map_par['k'].vary = True
-        self.map_par['r'].vary = True
+        self.map_par['a'].vary = True
         self.map_par['q1'].vary = True
         self.map_par['q2'].vary = True
         self.map_par['p'].vary = True
 
-        if use_rhostar:
-            self.map_par['r'].vary = True
-            #self.map_par['a'].vary = False
-            #par.pop('a')
-            self.map_par.pop('a')
-        else:
-            #self.map_par['r'].vary = False
-            self.map_par['a'].vary = True
-            #par.pop('r')
-            self.map_par.pop('r')
+        # if use_rhostar:
+        #     self.map_par['r'].vary = True
+        #     #self.map_par['a'].vary = False
+        #     #par.pop('a')
+        #     self.map_par.pop('a')
+        # else:
+        #     #self.map_par['r'].vary = False
+        #     self.map_par['a'].vary = True
+        #     #par.pop('r')
+        #     self.map_par.pop('r')
 
     @timeit
     def fit_mcmc(self, steps=1000, nwalkers=100, two_stage=False, nproc=1, use_priors='all',
@@ -202,7 +199,7 @@ class TransitFit(object):
 
     def plot_trace(self, fp=None):
 
-        par_names = 'T_0,P,Rp/R_\star,\\rho_\star,b,q_1,q_2,log(\sigma)'.split(',')
+        par_names = 'T_0,P,Rp/R_\star,a,b,q_1,q_2,log(\sigma)'.split(',')
         if not self.map_par['p'].vary:
             par_names.pop(par_names.index('P'))
         par_names += self.sm.parameter_names
@@ -214,7 +211,7 @@ class TransitFit(object):
 
         fc = self.fc
         best = self.best
-        par_names = 'T_0,P,Rp/R_\star,\\rho_\star,b,q_1,q_2,log(\sigma)'.split(',')
+        par_names = 'T_0,P,Rp/R_\star,a,b,q_1,q_2,log(\sigma)'.split(',')
 
         if not self.map_par['p'].vary:
             idx = par_names.index('P')
@@ -296,7 +293,7 @@ class TransitFit(object):
         df = pd.DataFrame(OrderedDict(zip(par_names, fc.T)))
         df['rstar'] = np.random.randn(df.shape[0]) * rstar_sig + rstar
         df['pl_rad'] = df['k'] * df['rstar'] * (u.Rsun / u.Rearth).to(u.dimensionless_unscaled)
-        df['a'] = df['p r'.split()].apply(lambda x: arstar(*x), axis=1)
+        #df['a'] = df['p r'.split()].apply(lambda x: arstar(*x), axis=1)
         df['inc'] = df['a b'.split()].apply(lambda x: inclination(*x), axis=1)
         df['t14'] = df['p a k b'.split()].apply(lambda x: t14_circ(*x), axis=1)
         df['t23'] = df['p a k b'.split()].apply(lambda x: t23_circ(*x), axis=1)

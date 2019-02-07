@@ -3,7 +3,7 @@ from scipy import stats
 import lmfit
 from batman import TransitParams, TransitModel
 
-from .util import inclination, q_to_u, t14_circ, arstar
+from .util import inclination, q_to_u, t14_circ, arstar, rhostar
 
 params = TransitParams()
 params.limb_dark = "quadratic"
@@ -11,12 +11,12 @@ params.limb_dark = "quadratic"
 
 def model_tra_lm(par, t, tm):
     u1, u2 = q_to_u(par['q1'], par['q2'])
-    a = arstar(par['p'], par['r'])
-    i = inclination(a, par['b'].value)
+    #a = arstar(par['p'], par['r'])
+    i = inclination(par['a'].value, par['b'].value)
     params.t0 = par['t0'] #time of inferior conjunction
     params.per = par['p'] #orbital period
     params.rp = par['k']  #planet radius (in units of stellar radii)
-    params.a = a   #semi-major axis (in units of stellar radii)
+    params.a = par['a']   #semi-major axis (in units of stellar radii)
     params.inc = i        #orbital inclination (in degrees)
     params.ecc = 0.       #eccentricity
     params.w = 90.        #longitude of periastron (in degrees)
@@ -38,12 +38,13 @@ def residual_lm(par, t, f, TM, sm):
 
 def logprior_lm(par, priors={}):
 
-    t0,p,k,r,b,q1,q2 = [par.get(i) for i in 't0 p k r b q1 q2'.split()]
-
+    t0,p,k,a,b,q1,q2 = [par.get(i) for i in 't0 p k a b q1 q2'.split()]
+    r = rhostar(p, a)
     if p <= 0 or \
         q1 <= 0 or q1 >= 1 or \
         q2 <= 0 or q2 >= 1 or \
         r <= 0 or \
+        a <= 0 or a>= 100 or \
         b <= 0 or b > 1+k or \
         k < 0 or k > 1:
         return -np.inf
@@ -78,10 +79,10 @@ def logprior_lm(par, priors={}):
 # ===================
 
 def model_tra(theta, t, tm, fix_p=False):
-    t0,p,k,r,b,q1,q2 = theta[:7]
+    t0,p,k,a,b,q1,q2 = theta[:7]
     if fix_p:
         p = fix_p
-    a = arstar(p, r)
+    #a = arstar(p, r)
     i = inclination(a, b)
     u1, u2 = q_to_u(q1, q2)
     params.t0 = t0                       #time of inferior conjunction
