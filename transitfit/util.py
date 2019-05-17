@@ -1,9 +1,39 @@
 import time
 import numpy as np
+import pandas as pd
 from astropy import constants as c
 from astropy import units as u
 import lmfit
 from batman import TransitParams, TransitModel
+from tqdm import tqdm
+import emcee
+
+
+def binned(x, y, binsize=1, **kwargs):
+    """
+    x : (probably time)
+    y : (probably flux)
+    binsize : size of bins in same units as x
+    kwargs : additional vectors to be binned (key/val pairs)
+    """
+    df = pd.DataFrame(dict(x=x, y=y, **kwargs))
+    bins = np.arange(df.x.min(), df.x.max(), binsize)
+    groups = df.groupby(np.digitize(df.x, bins))
+    df_binned = groups.mean()
+    df_binned['stddev'] = groups.std()['y']
+    return df_binned
+
+
+def fit_mcmc(logprob, p0, args=(), nwalkers=64, nsteps=1000, nthreads=1, sig=1e-5):
+
+    ndim = len(p0)
+    pos = np.array(p0) + sig * np.random.randn(nwalkers, ndim)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, logprob, args=args, threads=nthreads)
+
+    for pos,_,_ in tqdm(sampler.sample(pos, iterations=nsteps)):
+        pass
+
+    return sampler
 
 
 def timeit(method):
@@ -115,12 +145,12 @@ def max_k(tshape):
     """
     return (1 - tshape) / (1 + tshape)
 
-def binned(a, binsize, fun=np.mean):
-    """
-    Simple binning function
-    """
-    return np.array([fun(a[i:i+binsize], axis=0) \
-        for i in range(0, a.shape[0], binsize)])
+# def binned(a, binsize, fun=np.mean):
+#     """
+#     Simple binning function
+#     """
+#     return np.array([fun(a[i:i+binsize], axis=0) \
+#         for i in range(0, a.shape[0], binsize)])
 
 def init_batman(t, init_params, exp_time=0.000694):
 
