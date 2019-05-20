@@ -54,7 +54,8 @@ def transit_model(theta, t, exp_time=0.002):
     return m.light_curve(params)
 
 def log_prior(theta, ldp=None, pp=None, t0p=None, rhop=None, start_idx=0):
-    t0,p,k,a,b,q1,q2 = theta[start_idx:start_idx+7]
+    t0,p,k,r,b,q1,q2 = theta[start_idx:start_idx+7]
+    a = arstar(p, r) # or just restrict r > 0?
     lp = 0
     if not 0 < k < 1:
         return -np.inf
@@ -99,14 +100,14 @@ class GPTransitFit:
         self.f = f
         self.init_params = init_params
 
-    def init_gp(self):
+    def init_gp(self, log_amp=-5, log_tau=-3, log_sigma=-5):
 
         bounds = [(-np.inf,np.inf), (0,np.inf), (0,1), (0,np.inf), (0,1), (0,1), (0,1)]
         t0,p,k,r,b,q1,q2 = [self.init_params.get(i) for i in 't0,p,k,r,b,q1,q2'.split(',')]
         mean_model = TransitMeanModel(t0=t0, p=p, k=k, r=r, b=b, q1=q1, q2=q2, bounds=bounds)
-        lna, lnt, lns = -5, -3, np.log(self.f.std())
-        kernel = terms.Matern32Term(log_sigma=lna, log_rho=lnt, bounds=[(-15,5),(-15,5)])
-        kernel += terms.JitterTerm(log_sigma=lns, bounds=[(-10,0)])
+
+        kernel = terms.Matern32Term(log_sigma=log_amp, log_rho=log_tau, bounds=[(-15,5),(-15,5)])
+        kernel += terms.JitterTerm(log_sigma=log_sigma, bounds=[(-10,0)])
         self.gp = celerite.GP(kernel, mean=mean_model, fit_mean=True)
         self.gp.compute(self.t)
 
